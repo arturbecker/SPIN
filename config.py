@@ -6,13 +6,13 @@ Things you need to change: *_ROOT that indicate the path to each dataset
 from os.path import join
 
 H36M_ROOT = ''
-LSP_ROOT = ''
-LSP_ORIGINAL_ROOT = ''
-LSPET_ROOT = ''
-MPII_ROOT = ''
-COCO_ROOT = ''
+LSP_ROOT = 'data/lsp_dataset/'
+LSP_ORIGINAL_ROOT = 'data/lsp_dataset_original/'
+LSPET_ROOT = 'data/hr-lspet/'
+MPII_ROOT = 'data/mpii_human_pose_v1/'
+COCO_ROOT = 'data/coco/'
 MPI_INF_3DHP_ROOT = 'data/3dhp/'
-PW3D_ROOT = ''
+PW3D_ROOT = 'data/3dpw/'
 UPI_S1H_ROOT = ''
 
 # Output folder to save test/train npz files
