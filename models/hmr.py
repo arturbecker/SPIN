@@ -64,15 +64,15 @@ class HMR(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc1 = nn.Linear(512 * block.expansion + npose + 13, 1024)
+        self.fc1 = nn.Linear(512 * block.expansion + npose + 13, 1024) # -10 to remove betas from fully connected layer
         self.drop1 = nn.Dropout()
         self.fc2 = nn.Linear(1024, 1024)
         self.drop2 = nn.Dropout()
         self.decpose = nn.Linear(1024, npose)
-        self.decshape = nn.Linear(1024, 10)
+        # self.decshape = nn.Linear(1024, 10)
         self.deccam = nn.Linear(1024, 3)
         nn.init.xavier_uniform_(self.decpose.weight, gain=0.01)
-        nn.init.xavier_uniform_(self.decshape.weight, gain=0.01)
+        # nn.init.xavier_uniform_(self.decshape.weight, gain=0.01)
         nn.init.xavier_uniform_(self.deccam.weight, gain=0.01)
 
         for m in self.modules():
@@ -85,10 +85,10 @@ class HMR(nn.Module):
 
         mean_params = np.load(smpl_mean_params)
         init_pose = torch.from_numpy(mean_params['pose'][:]).unsqueeze(0)
-        init_shape = torch.from_numpy(mean_params['shape'][:].astype('float32')).unsqueeze(0)
+        # init_shape = torch.from_numpy(mean_params['shape'][:].astype('float32')).unsqueeze(0)
         init_cam = torch.from_numpy(mean_params['cam']).unsqueeze(0)
         self.register_buffer('init_pose', init_pose)
-        self.register_buffer('init_shape', init_shape)
+        # self.register_buffer('init_shape', init_shape)
         self.register_buffer('init_cam', init_cam)
 
 
@@ -110,14 +110,14 @@ class HMR(nn.Module):
         return nn.Sequential(*layers)
 
 
-    def forward(self, x, init_pose=None, init_shape=None, init_cam=None, n_iter=3):
+    def forward(self, x, betas, init_pose=None, init_cam=None, n_iter=3): # Removed init_shape=None, inserted betas
 
         batch_size = x.shape[0]
 
         if init_pose is None:
             init_pose = self.init_pose.expand(batch_size, -1)
-        if init_shape is None:
-            init_shape = self.init_shape.expand(batch_size, -1)
+        #if init_shape is None:
+        #    init_shape = self.init_shape.expand(batch_size, -1)
         if init_cam is None:
             init_cam = self.init_cam.expand(batch_size, -1)
 
@@ -135,21 +135,23 @@ class HMR(nn.Module):
         xf = xf.view(xf.size(0), -1)
 
         pred_pose = init_pose
-        pred_shape = init_shape
+        #pred_shape = init_shape
+        gt_shape = betas
         pred_cam = init_cam
         for i in range(n_iter):
-            xc = torch.cat([xf, pred_pose, pred_shape, pred_cam],1)
+            xc = torch.cat([xf, pred_pose, gt_shape, pred_cam],1) # replaced pred_shape with gt_shape
             xc = self.fc1(xc)
             xc = self.drop1(xc)
             xc = self.fc2(xc)
             xc = self.drop2(xc)
             pred_pose = self.decpose(xc) + pred_pose
-            pred_shape = self.decshape(xc) + pred_shape
+            # pred_shape = self.decshape(xc) + pred_shape
             pred_cam = self.deccam(xc) + pred_cam
+            
         
         pred_rotmat = rot6d_to_rotmat(pred_pose).view(batch_size, 24, 3, 3)
 
-        return pred_rotmat, pred_shape, pred_cam
+        return pred_rotmat, pred_cam # removed pred_shape
 
 def hmr(smpl_mean_params, pretrained=True, **kwargs):
     """ Constructs an HMR model with ResNet50 backbone.

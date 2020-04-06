@@ -131,7 +131,7 @@ def run_evaluation(model, dataset_name, dataset, result_file,
         
         with torch.no_grad():
             pred_rotmat, pred_betas, pred_camera = model(images)
-            pred_output = smpl_neutral(betas=gt_betas, body_pose=gt_pose[:,3:], global_orient=gt_pose[:, :3], pose2rot=False) # Changed to gt_betas and gt_pose global orientation lol
+            pred_output = smpl_neutral(betas=pred_betas, body_pose=pred_rotmat[:,1:], global_orient=pred_rotmat[:,0].unsqueeze(1), pose2rot=False)
             pred_vertices = pred_output.vertices
 
         if save_results:

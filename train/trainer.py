@@ -5,6 +5,7 @@ from torchgeometry import angle_axis_to_rotation_matrix, rotation_matrix_to_angl
 import cv2
 
 from datasets import MixedDataset
+from datasets import BaseDataset
 from models import hmr, SMPL
 from smplify import SMPLify
 from utils.geometry import batch_rodrigues, perspective_projection, estimate_translation
@@ -13,13 +14,15 @@ from utils import BaseTrainer
 
 import config
 import constants
-from .fits_dict import FitsDict
+# from .fits_dict import FitsDict
 
 
 class Trainer(BaseTrainer):
     
     def init_fn(self):
-        self.train_ds = MixedDataset(self.options, ignore_3d=self.options.ignore_3d, is_train=True)
+        #self.train_ds = MixedDataset(self.options, ignore_3d=self.options.ignore_3d, is_train=True)
+        self.train_ds = BaseDataset(self.options, '3dpw', is_train=False)
+        # self.train_ds.dataset_dict = {'3dpw': 0} # Creating a dataset_dict attribute to mimic mixed_dataset behavior (doesn't quite work)
 
         self.model = hmr(config.SMPL_MEAN_PARAMS, pretrained=True).to(self.device)
         self.optimizer = torch.optim.Adam(params=self.model.parameters(),
@@ -45,13 +48,13 @@ class Trainer(BaseTrainer):
             self.load_pretrained(checkpoint_file=self.options.pretrained_checkpoint)
 
         # Load dictionary of fits
-        self.fits_dict = FitsDict(self.options, self.train_ds)
+        #self.fits_dict = FitsDict(self.options, self.train_ds)
 
         # Create renderer
         self.renderer = Renderer(focal_length=self.focal_length, img_res=self.options.img_res, faces=self.smpl.faces)
 
-    def finalize(self):
-        self.fits_dict.save()
+    #def finalize(self):
+        #self.fits_dict.save()
 
     def keypoint_loss(self, pred_keypoints_2d, gt_keypoints_2d, openpose_weight, gt_weight):
         """ Compute 2D reprojection loss on the keypoints.
@@ -92,18 +95,18 @@ class Trainer(BaseTrainer):
         else:
             return torch.FloatTensor(1).fill_(0.).to(self.device)
 
-    def smpl_losses(self, pred_rotmat, pred_betas, gt_pose, gt_betas, has_smpl):
+    def smpl_losses(self, pred_rotmat, gt_pose, has_smpl): # Remove pred_betas and gt_betas
         pred_rotmat_valid = pred_rotmat[has_smpl == 1]
         gt_rotmat_valid = batch_rodrigues(gt_pose.view(-1,3)).view(-1, 24, 3, 3)[has_smpl == 1]
-        pred_betas_valid = pred_betas[has_smpl == 1]
-        gt_betas_valid = gt_betas[has_smpl == 1]
+        # pred_betas_valid = pred_betas[has_smpl == 1]
+        #gt_betas_valid = gt_betas[has_smpl == 1]
         if len(pred_rotmat_valid) > 0:
             loss_regr_pose = self.criterion_regr(pred_rotmat_valid, gt_rotmat_valid)
-            loss_regr_betas = self.criterion_regr(pred_betas_valid, gt_betas_valid)
+            #loss_regr_betas = self.criterion_regr(pred_betas_valid, gt_betas_valid)
         else:
             loss_regr_pose = torch.FloatTensor(1).fill_(0.).to(self.device)
-            loss_regr_betas = torch.FloatTensor(1).fill_(0.).to(self.device)
-        return loss_regr_pose, loss_regr_betas
+            #loss_regr_betas = torch.FloatTensor(1).fill_(0.).to(self.device)
+        return loss_regr_pose # remove loss_regr_betas
 
     def train_step(self, input_batch):
         self.model.train()
@@ -128,13 +131,13 @@ class Trainer(BaseTrainer):
         gt_model_joints = gt_out.joints
         gt_vertices = gt_out.vertices
 
-        # Get current best fits from the dictionary
-        opt_pose, opt_betas = self.fits_dict[(dataset_name, indices.cpu(), rot_angle.cpu(), is_flipped.cpu())]
-        opt_pose = opt_pose.to(self.device)
-        opt_betas = opt_betas.to(self.device)
-        opt_output = self.smpl(betas=opt_betas, body_pose=opt_pose[:,3:], global_orient=opt_pose[:,:3])
-        opt_vertices = opt_output.vertices
-        opt_joints = opt_output.joints
+        # Get current best fits from the dictionary # Commenting out all the optimized fits saved in the dictionary
+        #opt_pose, opt_betas = self.fits_dict[(dataset_name, indices.cpu(), rot_angle.cpu(), is_flipped.cpu())]
+        #opt_pose = opt_pose.to(self.device)
+        #opt_betas = opt_betas.to(self.device)
+        #opt_output = self.smpl(betas=gt_betas, body_pose=opt_pose[:,3:], global_orient=opt_pose[:,:3]) # Bypass the need for opt_betas by replacing it with gt_betas here
+        #opt_vertices = opt_output.vertices
+        #opt_joints = opt_output.joints
 
 
         # De-normalize 2D keypoints from [-1,1] to pixel space
@@ -143,19 +146,19 @@ class Trainer(BaseTrainer):
 
         # Estimate camera translation given the model joints and 2D keypoints
         # by minimizing a weighted least squares loss
-        gt_cam_t = estimate_translation(gt_model_joints, gt_keypoints_2d_orig, focal_length=self.focal_length, img_size=self.options.img_res)
+        #gt_cam_t = estimate_translation(gt_model_joints, gt_keypoints_2d_orig, focal_length=self.focal_length, img_size=self.options.img_res) # Respectfully commenting this out
 
-        opt_cam_t = estimate_translation(opt_joints, gt_keypoints_2d_orig, focal_length=self.focal_length, img_size=self.options.img_res)
+        #opt_cam_t = estimate_translation(opt_joints, gt_keypoints_2d_orig, focal_length=self.focal_length, img_size=self.options.img_res)
 
 
-        opt_joint_loss = self.smplify.get_fitting_loss(opt_pose, opt_betas, opt_cam_t,
-                                                       0.5 * self.options.img_res * torch.ones(batch_size, 2, device=self.device),
-                                                       gt_keypoints_2d_orig).mean(dim=-1)
+        #opt_joint_loss = self.smplify.get_fitting_loss(opt_pose, gt_betas, opt_cam_t, # replace opt_betas with gt_betas
+        #                                               0.5 * self.options.img_res * torch.ones(batch_size, 2, device=self.device),
+        #                                               gt_keypoints_2d_orig).mean(dim=-1)
 
         # Feed images in the network to predict camera and SMPL parameters
-        pred_rotmat, pred_betas, pred_camera = self.model(images)
+        pred_rotmat, pred_camera = self.model(images, gt_betas) # Remove pred_betas, Feed betas into the network
 
-        pred_output = self.smpl(betas=pred_betas, body_pose=pred_rotmat[:,1:], global_orient=pred_rotmat[:,0].unsqueeze(1), pose2rot=False)
+        pred_output = self.smpl(betas=gt_betas, body_pose=pred_rotmat[:,1:], global_orient=pred_rotmat[:,0].unsqueeze(1), pose2rot=False) # Replace pred_betas with gt_betas
         pred_vertices = pred_output.vertices
         pred_joints = pred_output.joints
 
@@ -188,56 +191,56 @@ class Trainer(BaseTrainer):
             new_opt_vertices, new_opt_joints,\
             new_opt_pose, new_opt_betas,\
             new_opt_cam_t, new_opt_joint_loss = self.smplify(
-                                        pred_pose.detach(), pred_betas.detach(),
+                                        pred_pose.detach(), gt_betas.detach(), # Replace pred_betas.detach() with gt_betas
                                         pred_cam_t.detach(),
                                         0.5 * self.options.img_res * torch.ones(batch_size, 2, device=self.device),
                                         gt_keypoints_2d_orig)
             new_opt_joint_loss = new_opt_joint_loss.mean(dim=-1)
 
             # Will update the dictionary for the examples where the new loss is less than the current one
-            update = (new_opt_joint_loss < opt_joint_loss)
+            #update = (new_opt_joint_loss < opt_joint_loss)
             
 
-            opt_joint_loss[update] = new_opt_joint_loss[update]
-            opt_vertices[update, :] = new_opt_vertices[update, :]
-            opt_joints[update, :] = new_opt_joints[update, :]
-            opt_pose[update, :] = new_opt_pose[update, :]
-            opt_betas[update, :] = new_opt_betas[update, :]
-            opt_cam_t[update, :] = new_opt_cam_t[update, :]
+            #opt_joint_loss[update] = new_opt_joint_loss[update]
+            #opt_vertices[update, :] = new_opt_vertices[update, :]
+            #opt_joints[update, :] = new_opt_joints[update, :]
+            #opt_pose[update, :] = new_opt_pose[update, :]
+            #opt_betas[update, :] = new_opt_betas[update, :]
+            #opt_cam_t[update, :] = new_opt_cam_t[update, :]
 
 
-            self.fits_dict[(dataset_name, indices.cpu(), rot_angle.cpu(), is_flipped.cpu(), update.cpu())] = (opt_pose.cpu(), opt_betas.cpu())
+            #self.fits_dict[(dataset_name, indices.cpu(), rot_angle.cpu(), is_flipped.cpu(), update.cpu())] = (opt_pose.cpu(), opt_betas.cpu())
 
         else:
             update = torch.zeros(batch_size, device=self.device).byte()
 
         # Replace extreme betas with zero betas
-        opt_betas[(opt_betas.abs() > 3).any(dim=-1)] = 0.
+        #opt_betas[(opt_betas.abs() > 3).any(dim=-1)] = 0.
 
         # Replace the optimized parameters with the ground truth parameters, if available
-        opt_vertices[has_smpl, :, :] = gt_vertices[has_smpl, :, :]
-        opt_cam_t[has_smpl, :] = gt_cam_t[has_smpl, :]
-        opt_joints[has_smpl, :, :] = gt_model_joints[has_smpl, :, :]
-        opt_pose[has_smpl, :] = gt_pose[has_smpl, :]
-        opt_betas[has_smpl, :] = gt_betas[has_smpl, :]
+        #opt_vertices[has_smpl, :, :] = gt_vertices[has_smpl, :, :]
+        #opt_cam_t[has_smpl, :] = gt_cam_t[has_smpl, :]
+        #opt_joints[has_smpl, :, :] = gt_model_joints[has_smpl, :, :]
+        #opt_pose[has_smpl, :] = gt_pose[has_smpl, :]
+        #opt_betas[has_smpl, :] = gt_betas[has_smpl, :]
 
         # Assert whether a fit is valid by comparing the joint loss with the threshold
-        valid_fit = (opt_joint_loss < self.options.smplify_threshold).to(self.device)
+        #valid_fit = (opt_joint_loss < self.options.smplify_threshold).to(self.device)
         # Add the examples with GT parameters to the list of valid fits
-        valid_fit = valid_fit | has_smpl
+        #valid_fit = valid_fit | has_smpl
 
-        opt_keypoints_2d = perspective_projection(opt_joints,
-                                                  rotation=torch.eye(3, device=self.device).unsqueeze(0).expand(batch_size, -1, -1),
-                                                  translation=opt_cam_t,
-                                                  focal_length=self.focal_length,
-                                                  camera_center=camera_center)
+        #opt_keypoints_2d = perspective_projection(opt_joints,
+        #                                          rotation=torch.eye(3, device=self.device).unsqueeze(0).expand(batch_size, -1, -1),
+        #                                          translation=opt_cam_t,
+        #                                          focal_length=self.focal_length,
+        #                                          camera_center=camera_center)
 
 
-        opt_keypoints_2d = opt_keypoints_2d / (self.options.img_res / 2.)
+        #opt_keypoints_2d = opt_keypoints_2d / (self.options.img_res / 2.)
 
 
         # Compute loss on SMPL parameters
-        loss_regr_pose, loss_regr_betas = self.smpl_losses(pred_rotmat, pred_betas, opt_pose, opt_betas, valid_fit)
+        loss_regr_pose = self.smpl_losses(pred_rotmat, gt_pose, 1) # Remove loss_regr_betas, pred_betas, and opt_betas, replace opt_pose with gt_pose and valid_fit with 1
 
         # Compute 2D reprojection loss for the keypoints
         loss_keypoints = self.keypoint_loss(pred_keypoints_2d, gt_keypoints_2d,
@@ -248,17 +251,17 @@ class Trainer(BaseTrainer):
         loss_keypoints_3d = self.keypoint_3d_loss(pred_joints, gt_joints, has_pose_3d)
 
         # Per-vertex loss for the shape
-        loss_shape = self.shape_loss(pred_vertices, opt_vertices, valid_fit)
+        loss_shape = self.shape_loss(pred_vertices, gt_vertices, 1) # replace opt_vertices with gt_vertices, valid_fit with 1
 
         # Compute total loss
         # The last component is a loss that forces the network to predict positive depth values
         loss = self.options.shape_loss_weight * loss_shape +\
                self.options.keypoint_loss_weight * loss_keypoints +\
                self.options.keypoint_loss_weight * loss_keypoints_3d +\
-               loss_regr_pose + self.options.beta_loss_weight * loss_regr_betas +\
+               self.options.pose_loss_weight * loss_regr_pose +\
                ((torch.exp(-pred_camera[:,0]*10)) ** 2 ).mean()
         loss *= 60
-
+        # Remove self.options.beta_loss_weight * loss_regr_betas +\
 
         # Do backprop
         self.optimizer.zero_grad()
@@ -267,14 +270,15 @@ class Trainer(BaseTrainer):
 
         # Pack output arguments for tensorboard logging
         output = {'pred_vertices': pred_vertices.detach(),
-                  'opt_vertices': opt_vertices,
-                  'pred_cam_t': pred_cam_t.detach(),
-                  'opt_cam_t': opt_cam_t}
+                  #'opt_vertices': opt_vertices, # Remove optimized values
+                  'pred_cam_t': pred_cam_t.detach()
+                  #'opt_cam_t': opt_cam_t}
+                 }
         losses = {'loss': loss.detach().item(),
                   'loss_keypoints': loss_keypoints.detach().item(),
                   'loss_keypoints_3d': loss_keypoints_3d.detach().item(),
                   'loss_regr_pose': loss_regr_pose.detach().item(),
-                  'loss_regr_betas': loss_regr_betas.detach().item(),
+                  # 'loss_regr_betas': loss_regr_betas.detach().item(), # Remove loss_regr_betas
                   'loss_shape': loss_shape.detach().item()}
 
         return output, losses
@@ -285,12 +289,12 @@ class Trainer(BaseTrainer):
         images = images + torch.tensor([0.485, 0.456, 0.406], device=images.device).reshape(1,3,1,1)
 
         pred_vertices = output['pred_vertices']
-        opt_vertices = output['opt_vertices']
+        #opt_vertices = output['opt_vertices']
         pred_cam_t = output['pred_cam_t']
-        opt_cam_t = output['opt_cam_t']
+        #opt_cam_t = output['opt_cam_t']
         images_pred = self.renderer.visualize_tb(pred_vertices, pred_cam_t, images)
-        images_opt = self.renderer.visualize_tb(opt_vertices, opt_cam_t, images)
+        #images_opt = self.renderer.visualize_tb(opt_vertices, opt_cam_t, images)
         self.summary_writer.add_image('pred_shape', images_pred, self.step_count)
-        self.summary_writer.add_image('opt_shape', images_opt, self.step_count)
+        #self.summary_writer.add_image('opt_shape', images_opt, self.step_count)
         for loss_name, val in losses.items():
             self.summary_writer.add_scalar(loss_name, val, self.step_count)
