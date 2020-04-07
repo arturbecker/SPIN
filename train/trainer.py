@@ -20,8 +20,8 @@ import constants
 class Trainer(BaseTrainer):
     
     def init_fn(self):
-        #self.train_ds = MixedDataset(self.options, ignore_3d=self.options.ignore_3d, is_train=True)
-        self.train_ds = BaseDataset(self.options, '3dpw', is_train=False)
+        self.train_ds = MixedDataset(self.options, ignore_3d=self.options.ignore_3d, is_train=True)
+        #self.train_ds = BaseDataset(self.options, '3dpw', is_train=False)
         # self.train_ds.dataset_dict = {'3dpw': 0} # Creating a dataset_dict attribute to mimic mixed_dataset behavior (doesn't quite work)
 
         self.model = hmr(config.SMPL_MEAN_PARAMS, pretrained=True).to(self.device)
