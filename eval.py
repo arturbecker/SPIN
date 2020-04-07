@@ -130,8 +130,8 @@ def run_evaluation(model, dataset_name, dataset, result_file,
         curr_batch_size = images.shape[0]
         
         with torch.no_grad():
-            pred_rotmat, pred_betas, pred_camera = model(images)
-            pred_output = smpl_neutral(betas=pred_betas, body_pose=pred_rotmat[:,1:], global_orient=pred_rotmat[:,0].unsqueeze(1), pose2rot=False)
+            pred_rotmat, pred_camera = model(images, gt_betas) # Added gt_betas to model call, removed pred_betas
+            pred_output = smpl_neutral(betas=gt_betas, body_pose=pred_rotmat[:,1:], global_orient=pred_rotmat[:,0].unsqueeze(1), pose2rot=False) # Changed pred_betas to gt_betas
             pred_vertices = pred_output.vertices
 
         if save_results:
