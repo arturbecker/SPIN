@@ -81,12 +81,30 @@ def crop(img, center, scale, res, imgname, rot=0): # Included imgname for debugg
     #if new_y[1] == 0:
     #    print('old', old_x, old_y)
     #    print('new', new_x, new_y)
-
+    fieldnames = ['imgname', 'center', 'scale', 'res', 'rot', 'ul', 'br', 'pad', 'old_x', 'old_y', 'new_x', 'new_y']
+    import csv
     try:
         new_img[new_y[0]:new_y[1], new_x[0]:new_x[1]] = img[old_y[0]:old_y[1], 
                                                             old_x[0]:old_x[1]]   
+    
+        
+        correct_info = {'imgname':imgname,
+                      'center':center,
+                      'scale':scale,
+                      'res':res,
+                      'rot':rot,
+                      'ul':ul,
+                      'br':br,
+                      'pad':pad,
+                      'old_x':old_x,
+                      'old_y':old_y,
+                      'new_x':new_x,
+                      'new_y':new_y}
+        with open('working.csv', 'a', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writerow(correct_info)
+
     except ValueError:
-        import csv
         #fields = [imgname, center, scale, res, rot, ul, br, pad, old_x, old_y, new_x, new_y]
         error_info = {'imgname':imgname,
                       'center':center,
@@ -101,7 +119,6 @@ def crop(img, center, scale, res, imgname, rot=0): # Included imgname for debugg
                       'new_x':new_x,
                       'new_y':new_y}
         with open('errors.csv', 'a', newline='') as file:
-            fieldnames = ['imgname', 'center', 'scale', 'res', 'rot', 'ul', 'br', 'pad', 'old_x', 'old_y', 'new_x', 'new_y']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writerow(error_info)
             #writer = csv.writer(file)
