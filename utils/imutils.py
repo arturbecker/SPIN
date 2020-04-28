@@ -43,8 +43,10 @@ def transform(pt, center, scale, res, invert=0, rot=0):
     new_pt = np.dot(t, new_pt)
     return new_pt[:2].astype(int)+1
 
-def crop(img, center, scale, res, rot=0):
+def crop(img, center, scale, res, imgname, rot=0): # Included imgname for debugging
     """Crop image according to the supplied bounding box."""
+
+
     # Upper left point
     ul = np.array(transform([1, 1], center, scale, res, invert=1))-1
     # Bottom right point
@@ -62,14 +64,48 @@ def crop(img, center, scale, res, rot=0):
         new_shape += [img.shape[2]]
     new_img = np.zeros(new_shape)
 
+    # Some print calls
+    #print(img.shape, center, scale, res, rot)
+    #print(img.shape, new_img.shape, ul, br, pad, imgname)
+
     # Range to fill new array
     new_x = max(0, -ul[0]), min(br[0], len(img[0])) - ul[0]
     new_y = max(0, -ul[1]), min(br[1], len(img)) - ul[1]
     # Range to sample from original image
     old_x = max(0, ul[0]), min(len(img[0]), br[0])
     old_y = max(0, ul[1]), min(len(img), br[1])
-    new_img[new_y[0]:new_y[1], new_x[0]:new_x[1]] = img[old_y[0]:old_y[1], 
-                                                        old_x[0]:old_x[1]]
+    #print('old', old_x, old_y)
+    #if new_x[1] == 0:
+    #    print('old', old_x, old_y)
+    #    print('new', new_x, new_y)
+    #if new_y[1] == 0:
+    #    print('old', old_x, old_y)
+    #    print('new', new_x, new_y)
+
+    try:
+        new_img[new_y[0]:new_y[1], new_x[0]:new_x[1]] = img[old_y[0]:old_y[1], 
+                                                            old_x[0]:old_x[1]]   
+    except ValueError:
+        import csv
+        #fields = [imgname, center, scale, res, rot, ul, br, pad, old_x, old_y, new_x, new_y]
+        error_info = {'imgname':imgname,
+                      'center':center,
+                      'scale':scale,
+                      'res':res,
+                      'rot':rot,
+                      'ul':ul,
+                      'br':br,
+                      'pad':pad,
+                      'old_x':old_x,
+                      'old_y':old_y,
+                      'new_x':new_x,
+                      'new_y':new_y}
+        with open('errors.csv', 'a', newline='') as file:
+            fieldnames = ['imgname', 'center', 'scale', 'res', 'rot', 'ul', 'br', 'pad', 'old_x', 'old_y', 'new_x', 'new_y']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writerow(error_info)
+            #writer = csv.writer(file)
+            #writer.writerow([error_info])
 
     if not rot == 0:
         # Remove padding

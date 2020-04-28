@@ -116,10 +116,10 @@ class BaseDataset(Dataset):
         
         return flip, pn, rot, sc
 
-    def rgb_processing(self, rgb_img, center, scale, rot, flip, pn):
+    def rgb_processing(self, rgb_img, center, scale, rot, flip, pn, imgname): # Added imgname for debugging
         """Process rgb image and do augmentation."""
         rgb_img = crop(rgb_img, center, scale, 
-                      [constants.IMG_RES, constants.IMG_RES], rot=rot)
+                      [constants.IMG_RES, constants.IMG_RES], imgname, rot=rot)
         # flip the image 
         if flip:
             rgb_img = flip_img(rgb_img)
@@ -197,7 +197,7 @@ class BaseDataset(Dataset):
             betas = np.zeros(10)
 
         # Process image
-        img = self.rgb_processing(img, center, sc*scale, rot, flip, pn)
+        img = self.rgb_processing(img, center, sc*scale, rot, flip, pn, imgname)
         img = torch.from_numpy(img).float()
         # Store image before normalization to use it in visualization
         item['img'] = self.normalize_img(img)
