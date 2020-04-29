@@ -34,7 +34,7 @@ from utils.part_utils import PartRenderer
 # Define command-line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint', default=None, help='Path to network checkpoint')
-parser.add_argument('--dataset', default='h36m-p1', choices=['h36m-p1', 'h36m-p2', 'lsp', '3dpw', 'mpi-inf-3dhp'], help='Choose evaluation dataset')
+parser.add_argument('--dataset', default='h36m-p1', choices=['h36m-p1', 'h36m-p2', 'lsp', '3dpw', 'mpi-inf-3dhp', 'total-capture'], help='Choose evaluation dataset') # Added total_capture dataset for evaluation
 parser.add_argument('--log_freq', default=50, type=int, help='Frequency of printing intermediate results')
 parser.add_argument('--batch_size', default=32, help='Batch size for testing')
 parser.add_argument('--shuffle', default=False, action='store_true', help='Shuffle data')
@@ -110,7 +110,7 @@ def run_evaluation(model, dataset_name, dataset, result_file,
     eval_masks = False
     eval_parts = False
     # Choose appropriate evaluation for each dataset
-    if dataset_name == 'h36m-p1' or dataset_name == 'h36m-p2' or dataset_name == '3dpw' or dataset_name == 'mpi-inf-3dhp':
+    if dataset_name == 'h36m-p1' or dataset_name == 'h36m-p2' or dataset_name == '3dpw' or dataset_name == 'mpi-inf-3dhp' or dataset_name == 'total-capture':
         eval_pose = True
     elif dataset_name == 'lsp':
         eval_masks = True
