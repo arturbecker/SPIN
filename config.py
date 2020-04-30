@@ -12,8 +12,8 @@ LSPET_ROOT = ''
 MPII_ROOT = ''
 COCO_ROOT = ''
 MPI_INF_3DHP_ROOT = ''
-PW3D_ROOT = ''
-UPI_S1H_ROOT = ''
+PW3D_ROOT = '../Datasets/3dpw'
+UPI_S1H_ROOT = '../Datasets/TotalCapture'
 
 # Output folder to save test/train npz files
 DATASET_NPZ_PATH = 'data/dataset_extras'
@@ -36,7 +36,8 @@ DATASET_FILES = [ {'h36m-p1': join(DATASET_NPZ_PATH, 'h36m_valid_protocol1.npz')
                    'mpii': join(DATASET_NPZ_PATH, 'mpii_train.npz'),
                    'coco': join(DATASET_NPZ_PATH, 'coco_2014_train.npz'),
                    'lspet': join(DATASET_NPZ_PATH, 'hr-lspet_train.npz'),
-                   'mpi-inf-3dhp': join(DATASET_NPZ_PATH, 'mpi_inf_3dhp_train.npz')
+                   'mpi-inf-3dhp': join(DATASET_NPZ_PATH, 'mpi_inf_3dhp_train.npz'),
+                   'total-capture': join(DATASET_NPZ_PATH, 'total_capture_train.npz')
                   }
                 ]
 
