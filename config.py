@@ -13,7 +13,8 @@ MPII_ROOT = ''
 COCO_ROOT = ''
 MPI_INF_3DHP_ROOT = ''
 PW3D_ROOT = '../Datasets/3dpw'
-UPI_S1H_ROOT = '../Datasets/TotalCapture'
+UPI_S1H_ROOT = ''
+TOTAL_CAPTURE_ROOT = '../Datasets/TotalCapture'
 
 # Output folder to save test/train npz files
 DATASET_NPZ_PATH = 'data/dataset_extras'
@@ -29,6 +30,7 @@ DATASET_FILES = [ {'h36m-p1': join(DATASET_NPZ_PATH, 'h36m_valid_protocol1.npz')
                    'lsp': join(DATASET_NPZ_PATH, 'lsp_dataset_test.npz'),
                    'mpi-inf-3dhp': join(DATASET_NPZ_PATH, 'mpi_inf_3dhp_valid.npz'),
                    '3dpw': join(DATASET_NPZ_PATH, '3dpw_test.npz'),
+                   'total-capture': join(DATASET_NPZ_PATH, 'total_capture_validation.npz')
                   },
 
                   {'h36m': join(DATASET_NPZ_PATH, 'h36m_train.npz'),
@@ -52,6 +54,7 @@ DATASET_FOLDERS = {'h36m': H36M_ROOT,
                    'coco': COCO_ROOT,
                    '3dpw': PW3D_ROOT,
                    'upi-s1h': UPI_S1H_ROOT,
+                   'total-capture': TOTAL_CAPTURE_ROOT
                 }
 
 CUBE_PARTS_FILE = 'data/cube_parts.npy'

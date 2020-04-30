@@ -110,7 +110,7 @@ def run_evaluation(model, dataset_name, dataset, result_file,
     eval_masks = False
     eval_parts = False
     # Choose appropriate evaluation for each dataset
-    if dataset_name == 'h36m-p1' or dataset_name == 'h36m-p2' or dataset_name == '3dpw' or dataset_name == 'mpi-inf-3dhp' or dataset_name == 'total_capture':
+    if dataset_name == 'h36m-p1' or dataset_name == 'h36m-p2' or dataset_name == '3dpw' or dataset_name == 'mpi-inf-3dhp' or dataset_name == 'total-capture':
         eval_pose = True
     elif dataset_name == 'lsp':
         eval_masks = True
